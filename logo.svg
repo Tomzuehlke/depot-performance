@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Hintergrund -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0C447C"/>
+      <stop offset="100%" style="stop-color:#1a6bb5"/>
+    </linearGradient>
+    <linearGradient id="line1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4DB8FF"/>
+      <stop offset="100%" style="stop-color:#A8D8FF"/>
+    </linearGradient>
+    <linearGradient id="line2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3B6D11"/>
+      <stop offset="100%" style="stop-color:#7DC44A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Runder Hintergrund -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Subtiles Grid -->
+  <line x1="80" y1="430" x2="432" y2="430" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+  <line x1="80" y1="350" x2="432" y2="350" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <line x1="80" y1="270" x2="432" y2="270" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <line x1="80" y1="190" x2="432" y2="190" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+  <!-- Chart-Linie 1 (blau — ETF/Aktien) -->
+  <polyline
+    points="80,400 140,370 190,360 230,300 275,280 310,250 350,210 400,175 432,155"
+    fill="none" stroke="url(#line1)" stroke-width="14"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Chart-Linie 2 (grün — XEON/Sicherheit) -->
+  <polyline
+    points="80,420 140,415 190,408 230,400 275,392 310,385 350,378 400,370 432,365"
+    fill="none" stroke="url(#line2)" stroke-width="10"
+    stroke-linecap="round" stroke-linejoin="round"
+    stroke-dasharray="18,8"/>
+
+  <!-- Datenpunkt Highlight oben rechts -->
+  <circle cx="432" cy="155" r="14" fill="#4DB8FF" opacity="0.9"/>
+  <circle cx="432" cy="155" r="7" fill="white"/>
+
+  <!-- T+S Text unten -->
+  <text x="256" y="490" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="58" font-weight="700" fill="white" text-anchor="middle"
+    letter-spacing="4" opacity="0.95">T+S</text>
+
+  <!-- Kleines Label oben -->
+  <text x="256" y="108" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="36" font-weight="500" fill="rgba(255,255,255,0.7)" text-anchor="middle"
+    letter-spacing="6">DEPOT</text>
+</svg>
