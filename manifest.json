@@ -1,0 +1,12 @@
+{
+  "name": "Depot T+S Performance",
+  "short_name": "Depot T+S",
+  "description": "Portfolio Performance Uebersicht",
+  "start_url": "/depot-performance/",
+  "display": "standalone",
+  "background_color": "#0C447C",
+  "theme_color": "#0C447C",
+  "icons": [
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
