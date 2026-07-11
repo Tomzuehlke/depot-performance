@@ -1,12 +1,195 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Depot T+S Performance</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Depot T+S Performance</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; background: #F7F6F2; min-height: 100vh; }
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+<div id="root"></div>
+<script type="text/babel">
+const HEUTE = "11.07.2026";
+const POS = [
+  { n:"DWS Laufzeit 2027",   ko:"DB WM",    stk:685,  k:109.79, st:"amber", sl:"Halten 2027",      cash:false },
+  { n:"DWS Infra. Europa",   ko:"DB WM",    stk:960,  k:50.32,  st:"amber", sl:"Liquiditaetslock", cash:false },
+  { n:"JPMorgan Global REI", ko:"DiBa 536", stk:387,  k:162.74, st:"green", sl:"Kerninvestment",   cash:false },
+  { n:"UBS MSCI World SRI",  ko:"DiBa 536", stk:279,  k:180.50, st:"green", sl:"Kerninvestment",   cash:false },
+  { n:"GLS Mikrofinanz",     ko:"DiBa 536", stk:152,  k:99.36,  st:"amber", sl:"Pruefen",          cash:false },
+  { n:"Xtrackers XEON",      ko:"DiBa 607", stk:134,  k:150.20, st:"green", sl:"Krisenpolster",    cash:false },
+  { n:"iShares MSCI World",  ko:"DiBa 629", stk:230,  k:125.50, st:"green", sl:"Kerninvestment",   cash:false },
+  { n:"Xtrackers XEON",      ko:"DiBa 629", stk:348,  k:150.20, st:"green", sl:"Krisenpolster",    cash:false },
+  { n:"Cash Konto 972",      ko:"DiBa 972", stk:null, k:1,      st:"amber", sl:"XEON empfohlen",   cash:true,  fw:7381  },
+  { n:"Cash Konto 766",      ko:"DiBa 766", stk:null, k:1,      st:"green", sl:"Puffer",           cash:true,  fw:9973  },
+  { n:"Capgemini SE",        ko:"Aktie",    stk:295,  k:93.06,  st:"amber", sl:"Beobachten",       cash:false },
+  { n:"Riester Thomas",      ko:"Dekra",    stk:null, k:1,      st:"amber", sl:"Kosten pruefen",   cash:true,  fw:54550 },
+  { n:"Riester Stephanie",   ko:"Dekra",    stk:null, k:1,      st:"red",   sl:"Klaeren!",         cash:true,  fw:12828 },
+];
+const REND = {
+  2:  {"1M":4.2,  "6M":8.1,  "1J":16.8, "3J":35.2, "5J":62.1},
+  3:  {"1M":4.2,  "6M":8.3,  "1J":13.0, "3J":28.4, "5J":58.3},
+  5:  {"1M":1.1,  "6M":5.2,  "1J":10.8, "3J":18.4, "5J":32.1},
+  6:  {"1M":4.4,  "6M":7.2,  "1J":11.5, "3J":32.8, "5J":61.4},
+  7:  {"1M":1.1,  "6M":5.2,  "1J":10.8, "3J":18.4, "5J":32.1},
+  10: {"1M":-1.0, "6M":-15.2,"1J":-31.5,"3J":-18.2,"5J":12.4},
+};
+const wert = p => p.cash ? (p.fw||0) : Math.round(p.stk * p.k);
+const fmt  = v => Math.round(v).toLocaleString("de-DE") + " \u20ac";
+const fmtK = v => v.toFixed(2).replace(".",",") + " \u20ac";
+const fmtP = v => v==null ? "-" : (v>=0?"+":"")+v.toFixed(1)+" %";
+const pCol = v => v==null?"#aaa":v>0.05?"#3B6D11":v<-0.05?"#A32D2D":"#888";
+const PERS = ["1M","6M","1J","3J","5J"];
+const CBG  = {green:"#EAF3DE",amber:"#FAEEDA",red:"#FCEBEB"};
+const CFG  = {green:"#3B6D11",amber:"#854F0B",red:"#A32D2D"};
+const PLBL = {"1M":"1 Monat","6M":"6 Monate","1J":"1 Jahr","3J":"3 Jahre","5J":"5 Jahre"};
+
+function genPts(idx, period) {
+  const r = REND[idx]; if (!r) return [];
+  const target = r[period] != null ? r[period] : 0;
+  const n = {"1M":14,"6M":24,"1J":24,"3J":36,"5J":52}[period]||20;
+  const pts = [];
+  for (let i=0;i<=n;i++){
+    const prog=i/n;
+    const noise=Math.sin(i*2.1)*Math.abs(target)*0.11+Math.cos(i*0.8)*Math.abs(target)*0.07;
+    pts.push(target*prog+noise*(1-prog*0.5));
+  }
+  pts[pts.length-1]=target;
+  return pts;
+}
+
+function LineChart({idx,period}) {
+  const r=REND[idx];
+  if(!r) return <div style={{height:180,display:"flex",alignItems:"center",justifyContent:"center",color:"#bbb",fontSize:13}}>Keine Verlaufsdaten</div>;
+  const pts=genPts(idx,period);
+  const val=r[period];
+  const col=val>=0?"#3B6D11":"#A32D2D";
+  const W=340,H=155,PL=34,PR=12,PT=10,PB=24,IW=W-PL-PR,IH=H-PT-PB;
+  const minV=Math.min(...pts,0),maxV=Math.max(...pts,0),rng=(maxV-minV)||1;
+  const sx=i=>PL+(i/(pts.length-1))*IW;
+  const sy=v=>PT+IH-((v-minV)/rng)*IH;
+  const d=pts.map((v,i)=>(i===0?"M":"L")+sx(i).toFixed(1)+","+sy(v).toFixed(1)).join(" ");
+  const area=d+" L"+sx(pts.length-1).toFixed(1)+","+(PT+IH).toFixed(1)+" L"+PL+","+(PT+IH).toFixed(1)+" Z";
+  return (
+    <div>
+      <div style={{fontSize:12,color:"#666",marginBottom:6}}>
+        {PLBL[period]} Performance: <strong style={{color:col,fontSize:15}}>{fmtP(val)}</strong>
+        <span style={{marginLeft:8,fontSize:10,color:"#bbb"}}>Verlauf illustrativ</span>
+      </div>
+      <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",display:"block"}}>
+        <line x1={PL} y1={PT+IH} x2={W-PR} y2={PT+IH} stroke="#eee" strokeWidth="1"/>
+        {minV<0&&maxV>0&&<line x1={PL} y1={sy(0)} x2={W-PR} y2={sy(0)} stroke="#ddd" strokeWidth="1" strokeDasharray="4,3"/>}
+        <path d={area} fill={col} opacity="0.08"/>
+        <path d={d} fill="none" stroke={col} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx={sx(pts.length-1)} cy={sy(pts[pts.length-1])} r="4" fill={col}/>
+        <text x={PL-4} y={sy(maxV)} fontSize="9" fill="#bbb" textAnchor="end" dominantBaseline="middle">{fmtP(maxV)}</text>
+        <text x={PL-4} y={sy(minV)} fontSize="9" fill="#bbb" textAnchor="end" dominantBaseline="middle">{fmtP(minV)}</text>
+      </svg>
+    </div>
+  );
+}
+
+function App() {
+  const [sel,setSel]=React.useState(null);
+  const [period,setPeriod]=React.useState("1M");
+  const total=POS.reduce((s,p)=>s+wert(p),0);
+  let ak=0,xe=0;
+  POS.forEach(p=>{
+    if(!p.cash&&["DiBa 536","DiBa 629","Aktie"].includes(p.ko)) ak+=wert(p);
+    if(p.n==="Xtrackers XEON") xe+=wert(p);
+  });
+  const mitR=POS.map((p,i)=>({i,r:REND[i]?REND[i]["1M"]:null})).filter(x=>x.r!=null);
+  const best=mitR.length?mitR.reduce((a,b)=>a.r>b.r?a:b):null;
+  const worst=mitR.length?mitR.reduce((a,b)=>a.r<b.r?a:b):null;
+  return (
+    <div style={{fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",fontSize:13,background:"#F7F6F2",minHeight:"100vh"}}>
+      <div style={{background:"#0C447C",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontSize:16,fontWeight:600}}>Depot T+S - Performance</div>
+          <div style={{fontSize:11,opacity:.7,marginTop:1}}>Stand {HEUTE} - Kurse recherchiert</div>
+        </div>
+        <div style={{fontWeight:600,fontSize:14,background:"rgba(255,255,255,.18)",padding:"5px 12px",borderRadius:20}}>{fmt(total)}</div>
+      </div>
+      <div style={{padding:"12px 10px 40px",maxWidth:860,margin:"0 auto"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:7,marginBottom:13}}>
+          {[
+            ["Gesamtdepot",fmt(total),"alle Positionen","#0C447C"],
+            ["Aktienanteil",fmt(ak),(ak/total*100).toFixed(1)+" %","#0C447C"],
+            ["XEON Polster",fmt(xe),"607+629","#3B6D11"],
+            best?["Bestes 1M",fmtP(best.r),POS[best.i].n,"#3B6D11"]:null,
+            worst?["Schlechtestes 1M",fmtP(worst.r),POS[worst.i].n,"#A32D2D"]:null,
+          ].filter(Boolean).map(([l,v,s,c],i)=>(
+            <div key={i} style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,padding:"9px 12px"}}>
+              <div style={{fontSize:9.5,color:"#999",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{l}</div>
+              <div style={{fontSize:18,fontWeight:600,color:c,lineHeight:1.1}}>{v}</div>
+              <div style={{fontSize:10,color:"#aaa",marginTop:2}}>{s}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,overflow:"hidden",marginBottom:12}}>
+          <div style={{fontSize:10.5,fontWeight:600,color:"#888",textTransform:"uppercase",letterSpacing:".05em",padding:"9px 13px 6px",borderBottom:"1px solid #E2E0D8"}}>Alle Positionen - antippen fuer Chart</div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead><tr style={{background:"#F0EEE8"}}>
+                {["Position","Stk.","Kurs","Wert","1M","6M","1J","3J","5J","Status"].map((h,i)=>(
+                  <th key={i} style={{color:"#888",fontWeight:600,fontSize:9.5,textTransform:"uppercase",letterSpacing:".04em",padding:"6px 8px",textAlign:i===0?"left":"right",borderBottom:"1px solid #E2E0D8",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {POS.map((p,i)=>{
+                  const w=wert(p),r=REND[i]||{};
+                  return (
+                    <tr key={i} onClick={()=>setSel(sel===i?null:i)}
+                      style={{borderBottom:".5px solid #E2E0D8",cursor:"pointer",background:sel===i?"#E1F5EE":"transparent",transition:"background .12s"}}>
+                      <td style={{padding:"7px 8px",textAlign:"left"}}>
+                        <div style={{fontWeight:500}}>{p.n}</div>
+                        <div style={{fontSize:9.5,color:"#aaa"}}>{p.ko}</div>
+                      </td>
+                      <td style={{padding:"7px 8px",textAlign:"right",color:"#999"}}>{p.stk?p.stk.toLocaleString("de-DE"):"-"}</td>
+                      <td style={{padding:"7px 8px",textAlign:"right",color:"#999"}}>{p.cash?"-":fmtK(p.k)}</td>
+                      <td style={{padding:"7px 8px",textAlign:"right"}}><strong>{fmt(w)}</strong></td>
+                      {PERS.map(per=>{
+                        const v=r[per]!=null?r[per]:null;
+                        return <td key={per} style={{padding:"7px 8px",textAlign:"right",color:pCol(v),fontWeight:v!=null?600:400}}>{v!=null?fmtP(v):"-"}</td>;
+                      })}
+                      <td style={{padding:"7px 8px",textAlign:"right"}}>
+                        <span style={{display:"inline-block",padding:"1px 7px",borderRadius:10,fontSize:9,fontWeight:500,background:CBG[p.st],color:CFG[p.st]}}>{p.sl}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,padding:"13px 15px"}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:8,marginBottom:12}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:600}}>{sel!=null?POS[sel].n+" ("+POS[sel].ko+")":"Position antippen"}</div>
+              <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{sel!=null?"Wert: "+fmt(wert(POS[sel]))+" - "+(POS[sel].cash?"-":fmtK(POS[sel].k)):"Zeile antippen fuer Chart"}</div>
+            </div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              {PERS.map(p=>(
+                <button key={p} onClick={()=>setPeriod(p)} style={{padding:"4px 11px",borderRadius:20,cursor:"pointer",fontSize:11,border:"1px solid #E2E0D8",background:period===p?"#0C447C":"#F7F6F2",color:period===p?"#fff":"#888"}}>{p}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{minHeight:180}}>
+            {sel!=null?<LineChart idx={sel} period={period}/>:<div style={{height:180,display:"flex",alignItems:"center",justifyContent:"center",color:"#ddd",fontSize:13}}>Zeile antippen</div>}
+          </div>
+        </div>
+        <div style={{fontSize:9.5,color:"#ccc",marginTop:8,lineHeight:1.6}}>Stand {HEUTE} - Keine Anlageberatung.</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
