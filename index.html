@@ -12,182 +12,367 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; background: #F7F6F2; min-height: 100vh; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:13px; background:#F7F6F2; min-height:100vh; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const HEUTE = "11.07.2026";
+
+// ── Kurse Stand 15.07.2026 ──────────────────────────────────────────────────
+// JPMorgan: 194,86 USD / 1,083 EUR/USD = ~179,93 EUR (Stand 15.07.2026)
+// Alle anderen Kurse: letzte bekannte Werte
+const KURSE_STAND = "15.07.2026";
+const EUR_USD = 1.083; // EUR/USD Stand 15.07.2026
+
 const POS = [
-  { n:"DWS Laufzeit 2027",   ko:"DB WM",    stk:685,  k:109.79, st:"amber", sl:"Halten 2027",      cash:false },
-  { n:"DWS Infra. Europa",   ko:"DB WM",    stk:960,  k:50.32,  st:"amber", sl:"Liquiditaetslock", cash:false },
-  { n:"JPMorgan Global REI", ko:"DiBa 536", stk:387,  k:162.74, st:"green", sl:"Kerninvestment",   cash:false },
-  { n:"UBS MSCI World SRI",  ko:"DiBa 536", stk:279,  k:180.50, st:"green", sl:"Kerninvestment",   cash:false },
-  { n:"GLS Mikrofinanz",     ko:"DiBa 536", stk:152,  k:99.36,  st:"amber", sl:"Pruefen",          cash:false },
-  { n:"Xtrackers XEON",      ko:"DiBa 607", stk:134,  k:150.20, st:"green", sl:"Krisenpolster",    cash:false },
-  { n:"iShares MSCI World",  ko:"DiBa 629", stk:230,  k:125.50, st:"green", sl:"Kerninvestment",   cash:false },
-  { n:"Xtrackers XEON",      ko:"DiBa 629", stk:348,  k:150.20, st:"green", sl:"Krisenpolster",    cash:false },
-  { n:"Cash Konto 972",      ko:"DiBa 972", stk:null, k:1,      st:"amber", sl:"XEON empfohlen",   cash:true,  fw:7381  },
-  { n:"Cash Konto 766",      ko:"DiBa 766", stk:null, k:1,      st:"green", sl:"Puffer",           cash:true,  fw:9973  },
-  { n:"Capgemini SE",        ko:"Aktie",    stk:295,  k:93.06,  st:"amber", sl:"Beobachten",       cash:false },
-  { n:"Riester Thomas",      ko:"Dekra",    stk:null, k:1,      st:"amber", sl:"Kosten pruefen",   cash:true,  fw:54550 },
-  { n:"Riester Stephanie",   ko:"Dekra",    stk:null, k:1,      st:"red",   sl:"Klaeren!",         cash:true,  fw:12828 },
+  { n:"DWS Laufzeit 2027",   ko:"DB WM",    kat:"renten",  stk:685,  k:109.79, st:"amber", sl:"Halten 2027"       },
+  { n:"DWS Infra. Europa",   ko:"DB WM",    kat:"infra",   stk:960,  k:50.32,  st:"amber", sl:"Liquiditaetslock"  },
+  { n:"JPMorgan Global REI", ko:"DiBa 536", kat:"aktien",  stk:387,  k:179.93, st:"green", sl:"Kerninvestment",   note:"194,86 USD / "+EUR_USD+" EUR/USD" },
+  { n:"UBS MSCI World SRI",  ko:"DiBa 536", kat:"aktien",  stk:279,  k:180.50, st:"green", sl:"Kerninvestment"    },
+  { n:"GLS Mikrofinanz",     ko:"DiBa 536", kat:"mikro",   stk:152,  k:99.36,  st:"amber", sl:"Pruefen"           },
+  { n:"Xtrackers XEON",      ko:"DiBa 607", kat:"sicher",  stk:134,  k:150.20, st:"green", sl:"Krisenpolster"     },
+  { n:"iShares MSCI World",  ko:"DiBa 629", kat:"aktien",  stk:230,  k:125.50, st:"green", sl:"Kerninvestment"    },
+  { n:"Xtrackers XEON",      ko:"DiBa 629", kat:"sicher",  stk:348,  k:150.20, st:"green", sl:"Krisenpolster"     },
+  { n:"Cash Konto 972",      ko:"DiBa 972", kat:"cash",    stk:null, k:1,      st:"amber", sl:"XEON empfohlen",   fw:7381  },
+  { n:"Cash Konto 766",      ko:"DiBa 766", kat:"cash",    stk:null, k:1,      st:"green", sl:"Puffer",           fw:9973  },
+  { n:"Capgemini SE",        ko:"Aktie",    kat:"aktien",  stk:295,  k:93.06,  st:"amber", sl:"Beobachten"        },
+  { n:"Riester Thomas",      ko:"Dekra",    kat:"vorsorge", stk:null, k:1,     st:"amber", sl:"Kosten pruefen",   fw:54550 },
+  { n:"Riester Stephanie",   ko:"Dekra",    kat:"vorsorge", stk:null, k:1,     st:"red",   sl:"Klaeren!",         fw:12828 },
 ];
+
+// Renditen — nur verifizierte Werte aus oeffentlichen Quellen
+// Quellen: wallstreet-online.de, finanzen.net (Stand Juli 2026)
 const REND = {
-  2:  {"1M":4.2,  "6M":8.1,  "1J":16.8, "3J":35.2, "5J":62.1},
-  3:  {"1M":4.2,  "6M":8.3,  "1J":13.0, "3J":28.4, "5J":58.3},
-  5:  {"1M":1.1,  "6M":5.2,  "1J":10.8, "3J":18.4, "5J":32.1},
-  6:  {"1M":4.4,  "6M":7.2,  "1J":11.5, "3J":32.8, "5J":61.4},
-  7:  {"1M":1.1,  "6M":5.2,  "1J":10.8, "3J":18.4, "5J":32.1},
-  10: {"1M":-1.0, "6M":-15.2,"1J":-31.5,"3J":-18.2,"5J":12.4},
+  2: { "1M":4.2,  "1J":16.77, src:"finanzen.net" },   // JPMorgan REI
+  3: { "1M":4.23, "1J":12.96, src:"wallstreet-online" }, // UBS SRI
+  6: { "1M":4.4,  "1J":11.5,  src:"extraetf.com" },   // iShares MSCI World
+  10:{ "1M":-1.0, "1J":-31.5, src:"boerse.de" },       // Capgemini
 };
-const wert = p => p.cash ? (p.fw||0) : Math.round(p.stk * p.k);
+
+// Historische Monatsstände (ECHTE Werte — nur was wir wissen)
+// Kaufzeitpunkt Nov 2023 als Basis, dann bekannte Stände
+// Format: { monat, aktien, sicher, renten, infra, mikro, cash, vorsorge }
+// Werte in EUR, gerundet
+const HISTORY = [
+  // Stand bei Kauf / Beginn der Analyse (Schätzung aus bekannten Kaufkursen)
+  { m:"Nov 23", aktien:145000, sicher:20000, renten:72000, infra:51000, mikro:15000, cash:15000, vorsorge:65000, note:"Kaufzeitpunkt DWS-Fonds (Schaetzung)" },
+  // Letzter bekannter Stand vor DWS-Verkauf (Maerz 2026)
+  { m:"Mrz 26", aktien:188000, sicher:71500, renten:75000, infra:48300, mikro:15100, cash:17400, vorsorge:67400, note:"Stand vor DWS-Verkauf (DB-App)" },
+  // Aktueller Stand Juli 2026
+  { m:"Jul 26", aktien:null,   sicher:null,  renten:null,  infra:null,  mikro:null,  cash:null,  vorsorge:null,  note:"Aktuell — berechnet" },
+];
+
+// Aktuelle Werte berechnen
+const wert = p => (p.fw) ? p.fw : (p.stk ? Math.round(p.stk * p.k) : 0);
+const KAT_FARBEN = {
+  aktien:  "#378ADD",
+  sicher:  "#3B9E80",
+  renten:  "#639922",
+  infra:   "#BA7517",
+  mikro:   "#1D9E75",
+  cash:    "#888780",
+  vorsorge:"#534AB7",
+};
+const KAT_LABEL = {
+  aktien:"Aktien/ETF", sicher:"Sicherheit (XEON)", renten:"Renten",
+  infra:"Infra", mikro:"Mikrofinanz", cash:"Cash", vorsorge:"Vorsorge"
+};
+
+// Aktuelle Summen berechnen
+const KATS = Object.keys(KAT_FARBEN);
+const AKTUELL = {};
+KATS.forEach(k => { AKTUELL[k] = POS.filter(p=>p.kat===k).reduce((s,p)=>s+wert(p),0); });
+
+// History mit aktuellem Stand ergaenzen
+HISTORY[HISTORY.length-1] = {
+  m:"Jul 26",
+  ...AKTUELL,
+  note:"Aktuell — berechnet aus Kursen "+KURSE_STAND
+};
+
 const fmt  = v => Math.round(v).toLocaleString("de-DE") + " \u20ac";
 const fmtK = v => v.toFixed(2).replace(".",",") + " \u20ac";
-const fmtP = v => v==null ? "-" : (v>=0?"+":"")+v.toFixed(1)+" %";
+const fmtP = v => v==null?"k.A.":(v>=0?"+":"")+v.toFixed(1)+" %";
 const pCol = v => v==null?"#aaa":v>0.05?"#3B6D11":v<-0.05?"#A32D2D":"#888";
-const PERS = ["1M","6M","1J","3J","5J"];
 const CBG  = {green:"#EAF3DE",amber:"#FAEEDA",red:"#FCEBEB"};
 const CFG  = {green:"#3B6D11",amber:"#854F0B",red:"#A32D2D"};
-const PLBL = {"1M":"1 Monat","6M":"6 Monate","1J":"1 Jahr","3J":"3 Jahre","5J":"5 Jahre"};
 
-function genPts(idx, period) {
-  const r = REND[idx]; if (!r) return [];
-  const target = r[period] != null ? r[period] : 0;
-  const n = {"1M":14,"6M":24,"1J":24,"3J":36,"5J":52}[period]||20;
-  const pts = [];
-  for (let i=0;i<=n;i++){
-    const prog=i/n;
-    const noise=Math.sin(i*2.1)*Math.abs(target)*0.11+Math.cos(i*0.8)*Math.abs(target)*0.07;
-    pts.push(target*prog+noise*(1-prog*0.5));
-  }
-  pts[pts.length-1]=target;
-  return pts;
-}
+// ── Gestapeltes Balkendiagramm ──────────────────────────────────────────────
+function StackedBar({ data }) {
+  const W=340, H=200, PL=55, PR=10, PT=10, PB=30;
+  const IW=W-PL-PR, IH=H-PT-PB;
+  const maxTotal = Math.max(...data.map(d => KATS.reduce((s,k)=>s+(d[k]||0),0)));
+  const barW = Math.floor(IW / data.length) - 4;
 
-function LineChart({idx,period}) {
-  const r=REND[idx];
-  if(!r) return <div style={{height:180,display:"flex",alignItems:"center",justifyContent:"center",color:"#bbb",fontSize:13}}>Keine Verlaufsdaten</div>;
-  const pts=genPts(idx,period);
-  const val=r[period];
-  const col=val>=0?"#3B6D11":"#A32D2D";
-  const W=340,H=155,PL=34,PR=12,PT=10,PB=24,IW=W-PL-PR,IH=H-PT-PB;
-  const minV=Math.min(...pts,0),maxV=Math.max(...pts,0),rng=(maxV-minV)||1;
-  const sx=i=>PL+(i/(pts.length-1))*IW;
-  const sy=v=>PT+IH-((v-minV)/rng)*IH;
-  const d=pts.map((v,i)=>(i===0?"M":"L")+sx(i).toFixed(1)+","+sy(v).toFixed(1)).join(" ");
-  const area=d+" L"+sx(pts.length-1).toFixed(1)+","+(PT+IH).toFixed(1)+" L"+PL+","+(PT+IH).toFixed(1)+" Z";
+  const [tooltip, setTooltip] = React.useState(null);
+
+  const yTicks = [0, 100000, 200000, 300000, 400000, 500000].filter(v=>v<=maxTotal*1.1);
+
   return (
-    <div>
-      <div style={{fontSize:12,color:"#666",marginBottom:6}}>
-        {PLBL[period]} Performance: <strong style={{color:col,fontSize:15}}>{fmtP(val)}</strong>
-        <span style={{marginLeft:8,fontSize:10,color:"#bbb"}}>Verlauf illustrativ</span>
-      </div>
-      <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",display:"block"}}>
-        <line x1={PL} y1={PT+IH} x2={W-PR} y2={PT+IH} stroke="#eee" strokeWidth="1"/>
-        {minV<0&&maxV>0&&<line x1={PL} y1={sy(0)} x2={W-PR} y2={sy(0)} stroke="#ddd" strokeWidth="1" strokeDasharray="4,3"/>}
-        <path d={area} fill={col} opacity="0.08"/>
-        <path d={d} fill="none" stroke={col} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx={sx(pts.length-1)} cy={sy(pts[pts.length-1])} r="4" fill={col}/>
-        <text x={PL-4} y={sy(maxV)} fontSize="9" fill="#bbb" textAnchor="end" dominantBaseline="middle">{fmtP(maxV)}</text>
-        <text x={PL-4} y={sy(minV)} fontSize="9" fill="#bbb" textAnchor="end" dominantBaseline="middle">{fmtP(minV)}</text>
+    <div style={{position:"relative"}}>
+      <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",display:"block"}}
+        onMouseLeave={()=>setTooltip(null)}>
+        {/* Y-Achse Ticks */}
+        {yTicks.map(v => {
+          const y = PT + IH - (v/maxTotal)*IH;
+          return (
+            <g key={v}>
+              <line x1={PL} y1={y} x2={W-PR} y2={y} stroke="#eee" strokeWidth="1"/>
+              <text x={PL-4} y={y} fontSize="8" fill="#bbb" textAnchor="end" dominantBaseline="middle">
+                {v>=1000?(v/1000).toFixed(0)+"k":"0"}
+              </text>
+            </g>
+          );
+        })}
+        {/* Balken */}
+        {data.map((d,di) => {
+          const total = KATS.reduce((s,k)=>s+(d[k]||0),0);
+          const x = PL + di * (IW/data.length) + 2;
+          let yOff = PT + IH;
+          return (
+            <g key={di}
+              onMouseEnter={()=>setTooltip({di,d,total,x:x+barW/2})}
+              style={{cursor:"pointer"}}>
+              {KATS.map(k => {
+                const val = d[k]||0;
+                if(!val) return null;
+                const bh = (val/maxTotal)*IH;
+                yOff -= bh;
+                return (
+                  <rect key={k} x={x} y={yOff} width={barW} height={bh}
+                    fill={KAT_FARBEN[k]} opacity="0.88" rx="1"/>
+                );
+              })}
+              {/* X-Label */}
+              <text x={x+barW/2} y={H-PB+12} fontSize="8.5" fill="#888"
+                textAnchor="middle">{d.m}</text>
+              {/* Gesamtwert oben */}
+              <text x={x+barW/2} y={PT+IH-(total/maxTotal)*IH-4}
+                fontSize="8" fill="#555" textAnchor="middle">
+                {(total/1000).toFixed(0)}k
+              </text>
+            </g>
+          );
+        })}
       </svg>
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div style={{position:"absolute",top:10,left:tooltip.x>180?10:tooltip.x+10,
+          background:"rgba(255,255,255,0.97)",border:"1px solid #E2E0D8",borderRadius:8,
+          padding:"8px 12px",fontSize:10.5,boxShadow:"0 2px 12px rgba(0,0,0,0.12)",
+          pointerEvents:"none",zIndex:10,minWidth:160}}>
+          <div style={{fontWeight:600,marginBottom:4,fontSize:12}}>{tooltip.d.m} — {fmt(tooltip.total)}</div>
+          {KATS.map(k=>(tooltip.d[k]>0&&
+            <div key={k} style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
+              <span style={{width:8,height:8,borderRadius:2,background:KAT_FARBEN[k],display:"inline-block",flexShrink:0}}/>
+              <span style={{color:"#666"}}>{KAT_LABEL[k]}:</span>
+              <span style={{fontWeight:500,marginLeft:"auto"}}>{fmt(tooltip.d[k])}</span>
+            </div>
+          ))}
+          {tooltip.d.note&&<div style={{fontSize:9,color:"#aaa",marginTop:4,borderTop:"1px solid #eee",paddingTop:4}}>{tooltip.d.note}</div>}
+        </div>
+      )}
     </div>
   );
 }
 
+// ── Legende ─────────────────────────────────────────────────────────────────
+function Legende() {
+  return (
+    <div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:8}}>
+      {KATS.map(k=>(
+        <span key={k} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#666"}}>
+          <span style={{width:10,height:10,borderRadius:2,background:KAT_FARBEN[k],display:"inline-block"}}/>
+          {KAT_LABEL[k]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ── Hauptapp ─────────────────────────────────────────────────────────────────
 function App() {
-  const [sel,setSel]=React.useState(null);
-  const [period,setPeriod]=React.useState("1M");
-  const total=POS.reduce((s,p)=>s+wert(p),0);
+  const [tab, setTab] = React.useState("chart"); // "chart" | "tabelle" | "detail"
+  const [sel, setSel] = React.useState(null);
+
+  const total = POS.reduce((s,p)=>s+wert(p),0);
   let ak=0,xe=0;
   POS.forEach(p=>{
-    if(!p.cash&&["DiBa 536","DiBa 629","Aktie"].includes(p.ko)) ak+=wert(p);
+    if(["aktien","mikro"].includes(p.kat)) ak+=wert(p);
     if(p.n==="Xtrackers XEON") xe+=wert(p);
   });
-  const mitR=POS.map((p,i)=>({i,r:REND[i]?REND[i]["1M"]:null})).filter(x=>x.r!=null);
-  const best=mitR.length?mitR.reduce((a,b)=>a.r>b.r?a:b):null;
-  const worst=mitR.length?mitR.reduce((a,b)=>a.r<b.r?a:b):null;
+
   return (
     <div style={{fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",fontSize:13,background:"#F7F6F2",minHeight:"100vh"}}>
-      <div style={{background:"#0C447C",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+
+      {/* Header */}
+      <div style={{background:"#0C447C",color:"#fff",padding:"13px 16px",
+        display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div>
-          <div style={{fontSize:16,fontWeight:600}}>Depot T+S - Performance</div>
-          <div style={{fontSize:11,opacity:.7,marginTop:1}}>Stand {HEUTE} - Kurse recherchiert</div>
+          <div style={{fontSize:16,fontWeight:600}}>Depot T+S</div>
+          <div style={{fontSize:11,opacity:.7,marginTop:1}}>Kurse: {KURSE_STAND}</div>
         </div>
-        <div style={{fontWeight:600,fontSize:14,background:"rgba(255,255,255,.18)",padding:"5px 12px",borderRadius:20}}>{fmt(total)}</div>
+        <div style={{fontWeight:600,fontSize:15,background:"rgba(255,255,255,.18)",
+          padding:"5px 12px",borderRadius:20}}>{fmt(total)}</div>
       </div>
+
+      {/* Tab Navigation */}
+      <div style={{background:"#fff",borderBottom:"1px solid #E2E0D8",
+        display:"flex",padding:"0 16px"}}>
+        {[["chart","Verlauf"],["tabelle","Positionen"],["info","Info"]].map(([key,label])=>(
+          <button key={key} onClick={()=>setTab(key)} style={{
+            padding:"10px 14px",border:"none",background:"transparent",
+            fontSize:12,fontWeight:tab===key?600:400,cursor:"pointer",
+            color:tab===key?"#0C447C":"#888",
+            borderBottom:tab===key?"2px solid #0C447C":"2px solid transparent",
+            marginBottom:-1}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div style={{padding:"12px 10px 40px",maxWidth:860,margin:"0 auto"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:7,marginBottom:13}}>
+
+        {/* Summary Cards */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:7,marginBottom:13}}>
           {[
-            ["Gesamtdepot",fmt(total),"alle Positionen","#0C447C"],
-            ["Aktienanteil",fmt(ak),(ak/total*100).toFixed(1)+" %","#0C447C"],
-            ["XEON Polster",fmt(xe),"607+629","#3B6D11"],
-            best?["Bestes 1M",fmtP(best.r),POS[best.i].n,"#3B6D11"]:null,
-            worst?["Schlechtestes 1M",fmtP(worst.r),POS[worst.i].n,"#A32D2D"]:null,
-          ].filter(Boolean).map(([l,v,s,c],i)=>(
+            ["Gesamt",fmt(total),"alle Positionen","#0C447C"],
+            ["Aktienquote",fmt(ak),(ak/total*100).toFixed(1)+" %","#0C447C"],
+            ["XEON",fmt(xe),"Sicherheit","#3B9E80"],
+          ].map(([l,v,s,c],i)=>(
             <div key={i} style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,padding:"9px 12px"}}>
               <div style={{fontSize:9.5,color:"#999",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{l}</div>
-              <div style={{fontSize:18,fontWeight:600,color:c,lineHeight:1.1}}>{v}</div>
+              <div style={{fontSize:17,fontWeight:600,color:c}}>{v}</div>
               <div style={{fontSize:10,color:"#aaa",marginTop:2}}>{s}</div>
             </div>
           ))}
         </div>
-        <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,overflow:"hidden",marginBottom:12}}>
-          <div style={{fontSize:10.5,fontWeight:600,color:"#888",textTransform:"uppercase",letterSpacing:".05em",padding:"9px 13px 6px",borderBottom:"1px solid #E2E0D8"}}>Alle Positionen - antippen fuer Chart</div>
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-              <thead><tr style={{background:"#F0EEE8"}}>
-                {["Position","Stk.","Kurs","Wert","1M","6M","1J","3J","5J","Status"].map((h,i)=>(
-                  <th key={i} style={{color:"#888",fontWeight:600,fontSize:9.5,textTransform:"uppercase",letterSpacing:".04em",padding:"6px 8px",textAlign:i===0?"left":"right",borderBottom:"1px solid #E2E0D8",whiteSpace:"nowrap"}}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {POS.map((p,i)=>{
-                  const w=wert(p),r=REND[i]||{};
-                  return (
-                    <tr key={i} onClick={()=>setSel(sel===i?null:i)}
-                      style={{borderBottom:".5px solid #E2E0D8",cursor:"pointer",background:sel===i?"#E1F5EE":"transparent",transition:"background .12s"}}>
-                      <td style={{padding:"7px 8px",textAlign:"left"}}>
-                        <div style={{fontWeight:500}}>{p.n}</div>
-                        <div style={{fontSize:9.5,color:"#aaa"}}>{p.ko}</div>
-                      </td>
-                      <td style={{padding:"7px 8px",textAlign:"right",color:"#999"}}>{p.stk?p.stk.toLocaleString("de-DE"):"-"}</td>
-                      <td style={{padding:"7px 8px",textAlign:"right",color:"#999"}}>{p.cash?"-":fmtK(p.k)}</td>
-                      <td style={{padding:"7px 8px",textAlign:"right"}}><strong>{fmt(w)}</strong></td>
-                      {PERS.map(per=>{
-                        const v=r[per]!=null?r[per]:null;
-                        return <td key={per} style={{padding:"7px 8px",textAlign:"right",color:pCol(v),fontWeight:v!=null?600:400}}>{v!=null?fmtP(v):"-"}</td>;
-                      })}
-                      <td style={{padding:"7px 8px",textAlign:"right"}}>
-                        <span style={{display:"inline-block",padding:"1px 7px",borderRadius:10,fontSize:9,fontWeight:500,background:CBG[p.st],color:CFG[p.st]}}>{p.sl}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,padding:"13px 15px"}}>
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:8,marginBottom:12}}>
-            <div>
-              <div style={{fontSize:13,fontWeight:600}}>{sel!=null?POS[sel].n+" ("+POS[sel].ko+")":"Position antippen"}</div>
-              <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{sel!=null?"Wert: "+fmt(wert(POS[sel]))+" - "+(POS[sel].cash?"-":fmtK(POS[sel].k)):"Zeile antippen fuer Chart"}</div>
+
+        {/* CHART TAB */}
+        {tab==="chart" && (
+          <div>
+            <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,padding:"13px 15px",marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#0C447C",marginBottom:4}}>
+                Gesamtbestand nach Kategorie — monatlich
+              </div>
+              <div style={{fontSize:10.5,color:"#aaa",marginBottom:10,lineHeight:1.5}}>
+                Nur verifizierte Stichtage. Nov 2023 = Kaufzeitpunkt (Schaetzung).
+                Mrz 2026 = Stand DB-App vor DWS-Verkauf. Jul 2026 = aktuell berechnet.
+                Antippen der Balken zeigt Aufschluesslung.
+              </div>
+              <StackedBar data={HISTORY}/>
+              <Legende/>
             </div>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-              {PERS.map(p=>(
-                <button key={p} onClick={()=>setPeriod(p)} style={{padding:"4px 11px",borderRadius:20,cursor:"pointer",fontSize:11,border:"1px solid #E2E0D8",background:period===p?"#0C447C":"#F7F6F2",color:period===p?"#fff":"#888"}}>{p}</button>
+
+            {/* Assetklassen aktuell */}
+            <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,padding:"13px 15px"}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#0C447C",marginBottom:10}}>
+                Aktuelle Verteilung
+              </div>
+              {KATS.filter(k=>AKTUELL[k]>0).map(k=>(
+                <div key={k} style={{marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                    <span style={{fontSize:11,display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{width:9,height:9,borderRadius:2,background:KAT_FARBEN[k],display:"inline-block"}}/>
+                      {KAT_LABEL[k]}
+                    </span>
+                    <span style={{fontSize:11,fontWeight:500}}>
+                      {fmt(AKTUELL[k])}
+                      <span style={{color:"#aaa",fontWeight:400,marginLeft:5}}>
+                        {(AKTUELL[k]/total*100).toFixed(1)}%
+                      </span>
+                    </span>
+                  </div>
+                  <div style={{height:6,background:"#f0ede8",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:(AKTUELL[k]/total*100)+"%",
+                      background:KAT_FARBEN[k],borderRadius:3,transition:"width .4s"}}/>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-          <div style={{minHeight:180}}>
-            {sel!=null?<LineChart idx={sel} period={period}/>:<div style={{height:180,display:"flex",alignItems:"center",justifyContent:"center",color:"#ddd",fontSize:13}}>Zeile antippen</div>}
+        )}
+
+        {/* TABELLE TAB */}
+        {tab==="tabelle" && (
+          <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,overflow:"hidden"}}>
+            <div style={{fontSize:10.5,fontWeight:600,color:"#888",textTransform:"uppercase",
+              letterSpacing:".05em",padding:"9px 13px 6px",borderBottom:"1px solid #E2E0D8"}}>
+              Alle Positionen — antippen fuer Details
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                <thead><tr style={{background:"#F0EEE8"}}>
+                  {["Position","Konto","Stk.","Kurs","Wert","1M","1J","Status"].map((h,i)=>(
+                    <th key={i} style={{color:"#888",fontWeight:600,fontSize:9.5,
+                      textTransform:"uppercase",letterSpacing:".04em",padding:"6px 8px",
+                      textAlign:i<2?"left":"right",borderBottom:"1px solid #E2E0D8",whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {POS.map((p,i)=>{
+                    const w=wert(p); const r=REND[i]||{};
+                    return (
+                      <tr key={i} onClick={()=>setSel(sel===i?null:i)}
+                        style={{borderBottom:".5px solid #E2E0D8",cursor:"pointer",
+                          background:sel===i?"#E1F5EE":"transparent"}}>
+                        <td style={{padding:"7px 8px"}}>
+                          <div style={{fontWeight:500,fontSize:11}}>{p.n}</div>
+                          {p.note&&<div style={{fontSize:9,color:"#aaa"}}>{p.note}</div>}
+                        </td>
+                        <td style={{padding:"7px 8px",color:"#aaa",fontSize:10}}>{p.ko}</td>
+                        <td style={{padding:"7px 8px",textAlign:"right",color:"#999"}}>
+                          {p.stk?p.stk.toLocaleString("de-DE"):"-"}
+                        </td>
+                        <td style={{padding:"7px 8px",textAlign:"right",color:"#999"}}>
+                          {p.fw?"-":fmtK(p.k)}
+                        </td>
+                        <td style={{padding:"7px 8px",textAlign:"right"}}><strong>{fmt(w)}</strong></td>
+                        <td style={{padding:"7px 8px",textAlign:"right",color:pCol(r["1M"]),fontWeight:r["1M"]?600:400}}>
+                          {r["1M"]!=null?fmtP(r["1M"]):<span style={{color:"#ddd"}}>-</span>}
+                        </td>
+                        <td style={{padding:"7px 8px",textAlign:"right",color:pCol(r["1J"]),fontWeight:r["1J"]?600:400}}>
+                          {r["1J"]!=null?fmtP(r["1J"]):<span style={{color:"#ddd"}}>-</span>}
+                        </td>
+                        <td style={{padding:"7px 8px",textAlign:"right"}}>
+                          <span style={{display:"inline-block",padding:"1px 7px",borderRadius:10,
+                            fontSize:9,fontWeight:500,background:CBG[p.st],color:CFG[p.st]}}>{p.sl}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-        <div style={{fontSize:9.5,color:"#ccc",marginTop:8,lineHeight:1.6}}>Stand {HEUTE} - Keine Anlageberatung.</div>
+        )}
+
+        {/* INFO TAB */}
+        {tab==="info" && (
+          <div style={{background:"#fff",border:"1px solid #E2E0D8",borderRadius:10,padding:"14px 16px"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#0C447C",marginBottom:12}}>Datenquellen und Hinweise</div>
+            {[
+              ["JPMorgan Global REI (A3DB5Y)","Kurs in USD: 194,86 USD. Umgerechnet mit EUR/USD "+EUR_USD+" = "+fmtK(194.86/EUR_USD)+". Quelle: ING DiBa App."],
+              ["UBS MSCI World SRI","Rendite 1M +4,23 %, 1J +12,96 %. Quelle: wallstreet-online.de (Stand Juli 2026)."],
+              ["Capgemini SE","Rendite 1J -31,5 %. Quelle: boerse.de (Stand Juli 2026)."],
+              ["Historische Balken","Nov 2023: Schätzung auf Basis Kaufkurse. Mrz 2026: Stand DB-App. Jul 2026: Aktuell berechnet. Zwischenmonate: keine verifizierten Daten vorhanden."],
+              ["Nicht dargestellt","Renditen fuer DWS Laufzeit 2027, DWS Infra Europa, GLS Mikrofinanz, XEON, Riester: keine aktuellen verifizierten Kursverlaufsdaten verfuegbar."],
+              ["Naechste Aktualisierung","Manuelle Aktualisierung durch Kursabfrage. Ziel: monatlich."],
+            ].map(([t,b],i)=>(
+              <div key={i} style={{marginBottom:10,paddingBottom:10,borderBottom:i<5?"1px solid #f0ede8":"none"}}>
+                <div style={{fontWeight:500,fontSize:11.5,marginBottom:2}}>{t}</div>
+                <div style={{fontSize:11,color:"#666",lineHeight:1.5}}>{b}</div>
+              </div>
+            ))}
+            <div style={{fontSize:9.5,color:"#bbb",marginTop:8}}>
+              Keine Anlageberatung. Alle Angaben ohne Gewaehr. Stand {KURSE_STAND}.
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
